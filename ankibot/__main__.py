@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 from telegram import ForceReply, Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from ankibot.dictionary.dictionary import CambridgeDictionary
 
 # Enable logging
 logging.basicConfig(
@@ -28,9 +29,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text("Help!")
 
 
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Echo the user message."""
-    await update.message.reply_text(update.message.text)
+async def lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if CambridgeDictionary().contains(update.message.text):
+        text = "Found"
+    else:
+        text = "Not found"
+    await update.message.reply_text(text)
 
 
 def main() -> None:
@@ -48,7 +52,7 @@ def main() -> None:
 
     # on non command i.e message - echo the message on Telegram
     application.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND, echo))
+        filters.TEXT & ~filters.COMMAND, lookup))
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling()
