@@ -12,4 +12,7 @@ class Dictionary:
         return []
 
 
+class DictionaryError(Exception):
+    pass
+
 # CambridgeDictionary().contains("fixture")
