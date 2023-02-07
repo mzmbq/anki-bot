@@ -4,7 +4,10 @@ from dotenv import load_dotenv
 
 from telegram import ForceReply, Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
-from ankibot.dictionary.dictionary import CambridgeDictionary
+
+from ankibot.dictionary.cambridge import CambridgeDictionary
+from ankibot.dictionary.word_definition import WordDefinition
+
 
 # Enable logging
 logging.basicConfig(
@@ -31,7 +34,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if CambridgeDictionary().contains(update.message.text):
-        text = "Found"
+        text = "Found:\n"
+        for i, d in enumerate(CambridgeDictionary().get_definitions(update.message.text)):
+            text += str(i+1) + ". " + d.definition+ "\n"
+            for e in d.examples:
+                text += "- " + e + "\n"
+            text += "---\n"
     else:
         text = "Not found"
     await update.message.reply_text(text)
