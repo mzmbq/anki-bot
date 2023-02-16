@@ -2,8 +2,8 @@ import logging
 import os
 from dotenv import load_dotenv
 
-from telegram import ForceReply, Update
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram import ForceReply, Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, PicklePersistence
 
 from ankibot.dictionary.cambridge import CambridgeDictionary
 from ankibot.dictionary.word_definition import WordDefinition
@@ -16,53 +16,65 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Define a few command handlers. These usually take the two arguments update and
-# context.
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a message when the command /start is issued."""
-    user = update.effective_user
-    await update.message.reply_html(
-        rf"Hi {user.mention_html()}!",
-        reply_markup=ForceReply(selective=True),
-    )
+    start_text = f"Hello, {update.effective_user.mention_html()}!\nUse /help command"
+    await update.message.reply_html(start_text)
 
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    await update.message.reply_text("Help!")
+    help_text = "Commands:\n" \
+        "/help - ...\n" \
+        "/login - to connect to your ankiweb account\n"
+
+    await update.message.reply_text(help_text)
+
+
+async def login(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    pass
+
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    pass
 
 
 async def lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if CambridgeDictionary().contains(update.message.text):
-        text = "Found:\n"
-        for i, d in enumerate(CambridgeDictionary().get_definitions(update.message.text)):
-            text += str(i+1) + ". " + d.definition+ "\n"
-            for e in d.examples:
-                text += "- " + e + "\n"
-            text += "---\n"
-    else:
-        text = "Not found"
-    await update.message.reply_text(text)
+    bot_data = context.bot_data
+    word = update.message.text
+
+    if "cambridge_dict" not in bot_data:
+        bot_data["cambridge_dict"] = CambridgeDictionary()
+    dictionary = bot_data["cambridge_dict"]
+
+    if not dictionary.contains(word):
+        await update.message.reply_text(f"{word} not found.")
+        return
+
+    definitions = dictionary.get_definitions(word)
+    definitions_msg = "\n***\n".join([f"{i}. {d}" for i,
+                                     d in enumerate(definitions)])
+
+    await update.message.reply_text(definitions_msg)
 
 
 def main() -> None:
     """Start the bot."""
-
     load_dotenv()
     token = os.getenv("BOT_TOKEN")
 
-    # Create the Application and pass it your bot's token.
-    application = Application.builder().token(token).build()
+    filepath = "persistent_data"
+    persistence = PicklePersistence(filepath=filepath)
 
-    # on different commands - answer in Telegram
+    application = Application.builder().token(
+        token).persistence(persistence).build()
+
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-
-    # on non command i.e message - echo the message on Telegram
+    application.add_handler(CommandHandler("help", help))
+    application.add_handler(CommandHandler("login", login))
+    application.add_handler(CommandHandler("cancel", cancel))
     application.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND, lookup))
 
-    # Run the bot until the user presses Ctrl-C
     application.run_polling()
 
 
