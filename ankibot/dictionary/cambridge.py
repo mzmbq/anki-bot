@@ -16,6 +16,9 @@ class CambridgeDictionary(Dictionary):
         self.cache: dict[str, list[WordDefinition]] = {}
 
     def contains(self, word: str) -> bool:
+        if word in self.cache:
+            return True
+
         word_page = self.url + word
 
         try:
@@ -49,10 +52,10 @@ class CambridgeDictionary(Dictionary):
         result = []
         word = soup.find("div", {"span": "hw dhw"})
         blocks = soup.find_all("div", {"class": "def-block ddef_block"})
-        
+
         if len(blocks) == 0:
             raise DictionaryError("Parser failed")
-        
+
         for b in blocks:
             definition = b.find("div", {"class": "def ddef_d db"}).get_text()
             definition = definition[:-1]
