@@ -2,8 +2,8 @@ import logging
 import os
 from dotenv import load_dotenv
 
-from telegram import ForceReply, Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, PicklePersistence
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, PicklePersistence, CallbackQueryHandler
 
 from ankibot.dictionary.cambridge import CambridgeDictionary
 from ankibot.dictionary.word_definition import WordDefinition
@@ -50,11 +50,55 @@ async def lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(f"{word} not found.")
         return
 
-    definitions = dictionary.get_definitions(word)
-    definitions_msg = "\n***\n".join([f"{i}. {d}" for i,
-                                     d in enumerate(definitions)])
+    context.user_data["word"] = word
+    context.user_data["page"] = 0
+    
+    await show5(update, context)
+    
+    
+    
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
 
-    await update.message.reply_text(definitions_msg)
+    # CallbackQueries need to be answered, even if no notification to the user is needed
+    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
+    await query.answer()
+
+    dictionary = context.bot_data["cambridge_dict"]
+
+    data = query.data
+    if data == "more":
+        context.user_data["page"] += 1
+        await show5(update, context)
+    else:
+        await query.message.reply_text(f"Adding definition {dictionary.get_definitions(context.user_data['word'])[int(data)].definition} to your deck")
+
+    
+    
+async def show5(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    word = context.user_data["word"]
+    page = context.user_data["page"]
+    dictionary = context.bot_data["cambridge_dict"]
+    
+    start = page * 5
+    end = page * 5 + 5
+    
+    definitions = dictionary.get_definitions(word)[start:end]
+    if len(definitions) == 0:
+        # TODO: finish
+        return
+    definitions_msg = "\n***\n".join([f"{start + i}. {d}" for i,
+                                     d in enumerate(definitions)])
+    
+    keyboard_numbers = [InlineKeyboardButton(i, callback_data=str(i)) for i in range(start, end)]
+    keyboard = [keyboard_numbers, [InlineKeyboardButton("Show more", callback_data="more")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    # TODO: refactor
+    if update.message:
+        await update.message.reply_text(definitions_msg, reply_markup=reply_markup)
+    else:        
+        await update.callback_query.from_user.send_message(definitions_msg, reply_markup=reply_markup)
 
 
 def main() -> None:
@@ -74,6 +118,8 @@ def main() -> None:
     application.add_handler(CommandHandler("cancel", cancel))
     application.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND, lookup))
+
+    application.add_handler(CallbackQueryHandler(button))
 
     application.run_polling()
 
