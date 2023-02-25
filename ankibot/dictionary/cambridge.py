@@ -15,7 +15,7 @@ class CambridgeDictionary(Dictionary):
         self.url = "https://dictionary.cambridge.org/dictionary/english/"
         self.cache: dict[str, list[WordDefinition]] = {}
 
-    def contains(self, word: str) -> bool:
+    def __contains__(self, word: str) -> bool:
         if word in self.cache:
             return True
 
@@ -41,7 +41,7 @@ class CambridgeDictionary(Dictionary):
 
     def get_definitions(self, word: str) -> list[WordDefinition]:
         if word not in self.cache:
-            if not self.contains(word):
+            if not self.__contains__(word):
                 return []
 
         return self.cache[word]
