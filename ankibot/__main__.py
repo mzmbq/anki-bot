@@ -2,10 +2,10 @@ import logging
 import os
 from dotenv import load_dotenv
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, User
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, PicklePersistence, CallbackQueryHandler
 
-from ankibot.dictionary.cambridge import CambridgeDictionary
+from ankibot.dictionary.cambridge import CambridgeDictionary, Dictionary
 from ankibot.dictionary.word_definition import WordDefinition
 
 
@@ -14,6 +14,9 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+# TODO: Config file
+WORDS_PER_PAGE = 5
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -37,68 +40,76 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     pass
 
+# TODO: Implement
+def validate_word(word: str) -> bool:
+    return True
+
 
 async def lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    bot_data = context.bot_data
+    dictionary = context.bot_data["cambridge_dict"]
     word = update.message.text
 
-    if "cambridge_dict" not in bot_data:
-        bot_data["cambridge_dict"] = CambridgeDictionary()
-    dictionary = bot_data["cambridge_dict"]
+    if not validate_word(word):
+        await update.message.reply_text("Incorrect input")
+        return
 
-    if not dictionary.contains(word):
+    if word not in dictionary:
         await update.message.reply_text(f"{word} not found.")
         return
 
-    context.user_data["word"] = word
-    context.user_data["page"] = 0
-    
-    await show5(update, context)
-    
-    
-    
+    await show5(update.effective_user, dictionary, word, 0)
+
+
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    dictionary = context.bot_data["cambridge_dict"]
     query = update.callback_query
 
     # CallbackQueries need to be answered, even if no notification to the user is needed
     # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
     await query.answer()
 
-    dictionary = context.bot_data["cambridge_dict"]
-
     data = query.data
-    if data == "more":
-        context.user_data["page"] += 1
-        await show5(update, context)
+    if data.startswith("more"):
+        _, word, page = data.split("$")
+        await show5(update.effective_user, dictionary, word, int(page)+1)
     else:
-        await query.message.reply_text(f"Adding definition {dictionary.get_definitions(context.user_data['word'])[int(data)].definition} to your deck")
+        word, id = data.split("$")
+        definition = dictionary.get_definitions(word)[int(id)].definition
+        await query.message.reply_text(f"Adding definition *{definition}* to your deck")
 
-    
-    
-async def show5(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    word = context.user_data["word"]
-    page = context.user_data["page"]
-    dictionary = context.bot_data["cambridge_dict"]
-    
-    start = page * 5
-    end = page * 5 + 5
-    
-    definitions = dictionary.get_definitions(word)[start:end]
+
+async def show5(user: User, dictionary: Dictionary, word: str, page: int) -> None:
+    begin = WORDS_PER_PAGE * page
+    definitions = dictionary.get_definitions(
+        word)[begin:begin + WORDS_PER_PAGE]
+
     if len(definitions) == 0:
-        # TODO: finish
+        await user.send_message("No more definitions found")
         return
-    definitions_msg = "\n***\n".join([f"{start + i}. {d}" for i,
+
+    end = begin + len(definitions)
+
+    # create definitions list
+    definitions_msg = "\n***\n".join([f"{begin + i + 1}. {d}" for i,
                                      d in enumerate(definitions)])
-    
-    keyboard_numbers = [InlineKeyboardButton(i, callback_data=str(i)) for i in range(start, end)]
-    keyboard = [keyboard_numbers, [InlineKeyboardButton("Show more", callback_data="more")]]
+
+    # create buttons
+    keyboard_numbers = [InlineKeyboardButton(
+        i+1, callback_data=f"{word}${i}") for i in range(begin, end)]
+    keyboard = [keyboard_numbers, [InlineKeyboardButton(
+        "Show more", callback_data=f"more${word}${page}")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    # TODO: refactor
-    if update.message:
-        await update.message.reply_text(definitions_msg, reply_markup=reply_markup)
-    else:        
-        await update.callback_query.from_user.send_message(definitions_msg, reply_markup=reply_markup)
+
+    await user.send_message(definitions_msg, reply_markup=reply_markup)
+
+
+async def post_init(app: Application):
+    """Initialize the bot data"""
+
+    bot_data = app.bot_data
+
+    if "cambridge_dict" not in bot_data:
+        bot_data["cambridge_dict"] = CambridgeDictionary()
 
 
 def main() -> None:
@@ -110,7 +121,7 @@ def main() -> None:
     persistence = PicklePersistence(filepath=filepath)
 
     application = Application.builder().token(
-        token).persistence(persistence).build()
+        token).persistence(persistence).post_init(post_init).build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help))
