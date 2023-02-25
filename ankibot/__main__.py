@@ -40,6 +40,21 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     pass
 
+
+async def all(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Print all the words the user saved so far"""
+    # TODO: generate a deck file?
+    
+    deck = context.user_data.get("deck", [])
+    
+    if len(deck) == 0:
+        await update.message.reply_text("You have to add some words to your deck first")
+        return
+    
+    msg = "\n------\n".join([str(i) for i in deck])
+    await update.message.reply_text(msg)
+    
+
 # TODO: Implement
 def validate_word(word: str) -> bool:
     return True
@@ -74,9 +89,19 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await show5(update.effective_user, dictionary, word, int(page)+1)
     else:
         word, id = data.split("$")
-        definition = dictionary.get_definitions(word)[int(id)].definition
-        await query.message.reply_text(f"Adding definition *{definition}* to your deck")
+        def_model = dictionary.get_definitions(word)[int(id)]
+        
+        if "deck" not in context.user_data:
+            context.user_data["deck"] = []
+        deck = context.user_data["deck"]
 
+        if word in deck:
+            # TODO: implement comparison method for WordDefinition?
+            await update.message.reply_text("Your deck already contains this word")
+            return
+        
+        deck.append(def_model)
+        await query.message.reply_text(f"Adding definition *{def_model.definition}* to your deck")
 
 async def show5(user: User, dictionary: Dictionary, word: str, page: int) -> None:
     begin = WORDS_PER_PAGE * page
@@ -125,6 +150,7 @@ def main() -> None:
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help))
+    application.add_handler(CommandHandler("all", all))
     application.add_handler(CommandHandler("login", login))
     application.add_handler(CommandHandler("cancel", cancel))
     application.add_handler(MessageHandler(
