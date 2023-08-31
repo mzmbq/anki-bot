@@ -44,16 +44,16 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def all(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Print all the words the user saved so far"""
     # TODO: generate a deck file?
-    
+
     deck = context.user_data.get("deck", [])
-    
+
     if len(deck) == 0:
         await update.message.reply_text("You have to add some words to your deck first")
         return
-    
+
     msg = "\n------\n".join([str(i) for i in deck])
     await update.message.reply_text(msg)
-    
+
 
 # TODO: Implement
 def validate_word(word: str) -> bool:
@@ -90,7 +90,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     else:
         word, id = data.split("$")
         def_model = dictionary.get_definitions(word)[int(id)]
-        
+
         if "deck" not in context.user_data:
             context.user_data["deck"] = []
         deck = context.user_data["deck"]
@@ -99,9 +99,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             # TODO: implement comparison method for WordDefinition?
             await update.message.reply_text("Your deck already contains this word")
             return
-        
+
         deck.append(def_model)
         await query.message.reply_text(f"Adding definition *{def_model.definition}* to your deck")
+
 
 async def show5(user: User, dictionary: Dictionary, word: str, page: int) -> None:
     begin = WORDS_PER_PAGE * page
@@ -141,7 +142,7 @@ def main() -> None:
     """Start the bot."""
     load_dotenv()
     token = os.getenv("BOT_TOKEN")
-    
+
     if token is None:
         logger.fatal("Could not find bot token")
         return
