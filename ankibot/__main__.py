@@ -141,6 +141,10 @@ def main() -> None:
     """Start the bot."""
     load_dotenv()
     token = os.getenv("BOT_TOKEN")
+    
+    if token is None:
+        logger.fatal("Could not find bot token")
+        return
 
     filepath = "persistent_data"
     persistence = PicklePersistence(filepath=filepath)
