@@ -1,4 +1,4 @@
-from ankibot.dictionary.word_definition import WordDefinition
+from ankibot.dictionary.word_definition import WordEntry
 from ankibot.dictionary.dictionary import Dictionary
 from ankibot.dictionary.dictionary import DictionaryError
 
@@ -14,7 +14,7 @@ class CambridgeDictionary(Dictionary):
     """
 
     def __init__(self) -> None:
-        self.cache: dict[str, list[WordDefinition]] = {}
+        self.cache: dict[str, list[WordEntry]] = {}
 
 
     def __contains__(self, word: str) -> bool:
@@ -37,14 +37,14 @@ class CambridgeDictionary(Dictionary):
         return page_exists
 
 
-    def __getitem__(self, word: str) -> list[WordDefinition]:
+    def __getitem__(self, word: str) -> list[WordEntry]:
         if word not in self.cache:
             if not self.__contains__(word):
                 return []
         return self.cache[word]
 
 
-    def parse_definitions(self, html_doc: str) -> list[WordDefinition]:
+    def parse_definitions(self, html_doc: str) -> list[WordEntry]:
         soup = BeautifulSoup(html_doc, "html.parser")
 
         # TODO: fix missing word
@@ -63,7 +63,7 @@ class CambridgeDictionary(Dictionary):
             for ex in b.find_all("span", {"class": "eg deg"}):
                 examples.append(ex.get_text())
 
-            result.append(WordDefinition(word_element, definition_element, examples))
+            result.append(WordEntry(word_element, definition_element, examples))
         return result
 
 

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 @dataclass
-class WordDefinition:
+class WordEntry:
     word: str
     definition: str
     examples: list[str]

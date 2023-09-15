@@ -1,4 +1,4 @@
-from ankibot.dictionary.word_definition import WordDefinition
+from ankibot.dictionary.word_definition import WordEntry
 
 from abc import ABC, abstractmethod
 
@@ -13,7 +13,7 @@ class Dictionary(ABC):
         return False
 
     @abstractmethod
-    def __getitem__(self, word: str) -> list[WordDefinition]:
+    def __getitem__(self, word: str) -> list[WordEntry]:
         return []
 
 

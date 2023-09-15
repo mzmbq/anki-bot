@@ -6,7 +6,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, User
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, PicklePersistence, CallbackQueryHandler
 
 from ankibot.dictionary.cambridge import CambridgeDictionary, Dictionary
-from ankibot.dictionary.word_definition import WordDefinition
+from ankibot.dictionary.word_definition import WordEntry
 
 
 # Enable logging
