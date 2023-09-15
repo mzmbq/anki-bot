@@ -13,7 +13,7 @@ class Dictionary(ABC):
         return False
 
     @abstractmethod
-    def get_definitions(self, word: str) -> list[WordDefinition]:
+    def __getitem__(self, word: str) -> list[WordDefinition]:
         return []
 
 

@@ -106,7 +106,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def show5(user: User, dictionary: Dictionary, word: str, page: int) -> None:
     begin = WORDS_PER_PAGE * page
-    definitions = dictionary.get_definitions(
+    definitions = dictionary.__getitem__(
         word)[begin:begin + WORDS_PER_PAGE]
 
     if len(definitions) == 0:

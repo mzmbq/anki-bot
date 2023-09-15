@@ -37,7 +37,7 @@ class CambridgeDictionary(Dictionary):
         return page_exists
 
 
-    def get_definitions(self, word: str) -> list[WordDefinition]:
+    def __getitem__(self, word: str) -> list[WordDefinition]:
         if word not in self.cache:
             if not self.__contains__(word):
                 return []
