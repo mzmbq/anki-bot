@@ -1,6 +1,7 @@
 import logging
 import os
 from dotenv import load_dotenv
+import tomllib
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, User
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, PicklePersistence, CallbackQueryHandler
@@ -15,8 +16,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# TODO: Config file
-WORDS_PER_PAGE = 5
+def parse_config():
+    with open("config.toml", "rb") as f:
+        return tomllib.load(f)
+
+config = parse_config()
+settings = config["settings"]
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -105,9 +110,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def show5(user: User, dictionary: Dictionary, word: str, page: int) -> None:
-    begin = WORDS_PER_PAGE * page
+    words_per_page = settings["words_per_page"]
+    
+    begin = words_per_page * page
     definitions = dictionary.__getitem__(
-        word)[begin:begin + WORDS_PER_PAGE]
+        word)[begin:begin + words_per_page]
 
     if len(definitions) == 0:
         await user.send_message("No more definitions found")
