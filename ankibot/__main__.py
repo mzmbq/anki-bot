@@ -10,10 +10,13 @@ from ankibot.dictionary.cambridge import CambridgeDictionary, Dictionary
 from ankibot.dictionary.word_definition import WordEntry
 
 
-# Enable logging
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
+def setup_logging():
+    logging.basicConfig(
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        level=logging.INFO
+    )
+
+
 logger = logging.getLogger(__name__)
 
 def parse_config():
@@ -146,7 +149,10 @@ async def post_init(app: Application):
 
 
 def main() -> None:
-    """Start the bot."""
+    setup_logging()
+    
+    logger.info("Starting the ankibot...")
+
     load_dotenv()
     token = os.getenv("BOT_TOKEN")
 

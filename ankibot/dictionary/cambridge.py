@@ -2,8 +2,11 @@ from ankibot.dictionary.word_definition import WordEntry
 from ankibot.dictionary.dictionary import Dictionary
 from ankibot.dictionary.dictionary import DictionaryError
 
+import logging
 import requests
 from bs4 import BeautifulSoup
+
+logger = logging.getLogger(__name__)
 
 URL_PREFIX = "https://dictionary.cambridge.org/dictionary/english/"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"}
@@ -25,10 +28,9 @@ class CambridgeDictionary(Dictionary):
         try:
             response = requests.get(word_url, headers=HEADERS)
         except Exception as e:
-            # TODO: add logging
-            print(e)
-            return False
-
+            logger.exception(f"Get request failed for word: '{word}'")
+            raise
+        
         # if there is no page for the word we are getting redirected to https://dictionary.cambridge.org/dictionary/english/
         page_exists = response.url.split("/")[-1] != ""
 
