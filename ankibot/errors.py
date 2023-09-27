@@ -1,0 +1,2 @@
+class AnkiBotError(Exception):
+    pass

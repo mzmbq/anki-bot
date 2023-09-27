@@ -1,4 +1,5 @@
 from ankibot.dictionary.word_definition import WordEntry
+from ankibot.errors import AnkiBotError
 
 from abc import ABC, abstractmethod
 
@@ -17,5 +18,5 @@ class Dictionary(ABC):
         return []
 
 
-class DictionaryError(Exception):
+class DictionaryError(AnkiBotError):
     pass
