@@ -1,15 +1,16 @@
-from ankibot.dictionary.word_definition import WordEntry
-from ankibot.dictionary.dictionary import Dictionary
-from ankibot.dictionary.dictionary import DictionaryError
-
 import logging
 import requests
 from bs4 import BeautifulSoup
 
+from ankibot.dictionary.word_definition import WordEntry
+from ankibot.dictionary.dictionary import Dictionary
+from ankibot.dictionary.dictionary import DictionaryError
+
 logger = logging.getLogger(__name__)
 
 URL_PREFIX = "https://dictionary.cambridge.org/dictionary/english/"
-HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"}
+HEADERS = {"User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"}
 
 class CambridgeDictionary(Dictionary):
     """
@@ -26,12 +27,14 @@ class CambridgeDictionary(Dictionary):
 
         word_url = URL_PREFIX + word
         try:
-            response = requests.get(word_url, headers=HEADERS)
+            response = requests.get(word_url, headers=HEADERS, timeout=5)
         except Exception as e:
-            logger.exception(f"Get request failed for word: '{word}'")
+            logger.exception("Get request failed for word: '%s'", word)
+            logger.exception(e)
             raise
-        
-        # if there is no page for the word we are getting redirected to https://dictionary.cambridge.org/dictionary/english/
+
+        # if there is no page for the word
+        # we are getting redirected to https://dictionary.cambridge.org/dictionary/english/
         page_exists = response.url.split("/")[-1] != ""
 
         if page_exists:
@@ -47,6 +50,7 @@ class CambridgeDictionary(Dictionary):
 
 
     def parse_definitions(self, html_doc: str) -> list[WordEntry]:
+        """Parse definitions from html file"""
         soup = BeautifulSoup(html_doc, "html.parser")
 
         # TODO: fix missing word
@@ -65,7 +69,7 @@ class CambridgeDictionary(Dictionary):
             for ex in b.find_all("span", {"class": "eg deg"}):
                 examples.append(ex.get_text())
 
-            result.append(WordEntry(word_element, definition_element, examples))
+            result.append(WordEntry(str(word_element), definition_element, examples))
         return result
 
 

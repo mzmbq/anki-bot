@@ -10,5 +10,6 @@ dependencies = [
     "python-telegram-bot==20.0",
     "python-dotenv",
     "requests",
-    "beautifulsoup4"
+    "beautifulsoup4",
+    "pylint",
 ]

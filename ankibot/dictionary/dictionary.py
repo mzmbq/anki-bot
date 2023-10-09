@@ -1,10 +1,13 @@
+from abc import ABC, abstractmethod
+
 from ankibot.dictionary.word_definition import WordEntry
 from ankibot.errors import AnkiBotError
 
-from abc import ABC, abstractmethod
 
 
 class Dictionary(ABC):
+    """Base class for all dictionary implementations."""
+
     @abstractmethod
     def __init__(self):
         pass
@@ -19,4 +22,4 @@ class Dictionary(ABC):
 
 
 class DictionaryError(AnkiBotError):
-    pass
+    """Base class for all dictionary errors."""
