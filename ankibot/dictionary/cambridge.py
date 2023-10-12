@@ -53,7 +53,7 @@ class CambridgeDictionary(Dictionary):
         """Parse definitions from html file"""
         soup = BeautifulSoup(html_doc, "html.parser")
 
-        # TODO: fix missing word
+        # TODO: fix missing word # pylint: disable=fixme
         result = []
         word_element = soup.find("div", {"span": "hw dhw"})
         definition_blocks = soup.find_all("div", {"class": "def-block ddef_block"})

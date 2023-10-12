@@ -1,13 +1,16 @@
+# pylint: disable=missing-function-docstring
+# pylint: disable=fixme
+
 import logging
 import os
-from dotenv import load_dotenv
 import tomllib
 
+from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, User
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, PicklePersistence, CallbackQueryHandler
+from telegram.ext import (Application, CommandHandler, ContextTypes, MessageHandler,
+    filters, PicklePersistence, CallbackQueryHandler)
 
 from ankibot.dictionary.cambridge import CambridgeDictionary, Dictionary
-from ankibot.dictionary.word_definition import WordEntry
 
 
 def setup_logging():
@@ -27,32 +30,35 @@ config = parse_config()
 settings = config["settings"]
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def start_command(update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert isinstance(update.effective_user, User)
     start_text = f"Hello, {update.effective_user.mention_html()}!\nUse /help command"
     await update.message.reply_html(start_text)
 
 
-async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def help_command(update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    help_text = "Commands:\n" \
+
+    help_msg = "Commands:\n" \
         "/help - ...\n" \
         "/login - to connect to your ankiweb account\n"
 
-    await update.message.reply_text(help_text)
+    await update.message.reply_text(help_msg)
 
 
-async def login(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    pass
+# async def login_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+#     pass
 
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    pass
+# async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+#     pass
 
 
-async def all(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def all_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Print all the words the user saved so far"""
     # TODO: generate a deck file?
 
+    assert isinstance(context.user_data, dict)
     deck = context.user_data.get("deck", [])
 
     if len(deck) == 0:
@@ -64,11 +70,11 @@ async def all(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 # TODO: Implement
-def validate_word(word: str) -> bool:
+def validate_word(_word: str) -> bool:
     return True
 
 
-async def lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def lookup_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     dictionary = context.bot_data["cambridge_dict"]
     word = update.message.text
 
@@ -80,10 +86,14 @@ async def lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(f"{word} not found.")
         return
 
+    assert isinstance(update.effective_user, User)
     await show5(update.effective_user, dictionary, word, 0)
 
 
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def button_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert isinstance(update.effective_user, User)
+    assert isinstance(context.user_data, dict)
+
     dictionary = context.bot_data["cambridge_dict"]
     query = update.callback_query
 
@@ -96,8 +106,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         _, word, page = data.split("$")
         await show5(update.effective_user, dictionary, word, int(page)+1)
     else:
-        word, id = data.split("$")
-        def_model = dictionary.get_definitions(word)[int(id)]
+        word, idx = data.split("$")
+        def_model = dictionary.get_definitions(word)[int(idx)]
 
         if "deck" not in context.user_data:
             context.user_data["deck"] = []
@@ -114,10 +124,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def show5(user: User, dictionary: Dictionary, word: str, page: int) -> None:
     words_per_page = settings["words_per_page"]
-    
+
     begin = words_per_page * page
-    definitions = dictionary.__getitem__(
-        word)[begin:begin + words_per_page]
+    definitions = dictionary[word][begin:begin + words_per_page]
 
     if len(definitions) == 0:
         await user.send_message("No more definitions found")
@@ -131,7 +140,7 @@ async def show5(user: User, dictionary: Dictionary, word: str, page: int) -> Non
 
     # create buttons
     keyboard_numbers = [InlineKeyboardButton(
-        i+1, callback_data=f"{word}${i}") for i in range(begin, end)]
+        str(i+1), callback_data=f"{word}${i}") for i in range(begin, end)]
     keyboard = [keyboard_numbers, [InlineKeyboardButton(
         "Show more", callback_data=f"more${word}${page}")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -150,7 +159,7 @@ async def post_init(app: Application):
 
 def main() -> None:
     setup_logging()
-    
+
     logger.info("Starting the ankibot...")
 
     load_dotenv()
@@ -163,18 +172,21 @@ def main() -> None:
     filepath = "persistent_data"
     persistence = PicklePersistence(filepath=filepath)
 
-    application = Application.builder().token(
-        token).persistence(persistence).post_init(post_init).build()
+    application = Application.builder()\
+        .token(token)\
+        .persistence(persistence)\
+        .post_init(post_init)\
+        .build()
 
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help))
-    application.add_handler(CommandHandler("all", all))
-    application.add_handler(CommandHandler("login", login))
-    application.add_handler(CommandHandler("cancel", cancel))
+    application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("all", all_command))
+    # application.add_handler(CommandHandler("login", login_command))
+    # application.add_handler(CommandHandler("cancel", cancel_command))
     application.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND, lookup))
+        filters.TEXT & ~filters.COMMAND, lookup_command))
 
-    application.add_handler(CallbackQueryHandler(button))
+    application.add_handler(CallbackQueryHandler(button_command))
 
     application.run_polling()
 
