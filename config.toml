@@ -1,2 +1,4 @@
-[settings]
+[bot]
+is_persistent = true
+persistence_path = "persistent.data"
 words_per_page = 5
