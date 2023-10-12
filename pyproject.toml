@@ -13,3 +13,6 @@ dependencies = [
     "beautifulsoup4",
     "pylint",
 ]
+
+[project.scripts]
+ankibot-run = "ankibot.__main__:main"
