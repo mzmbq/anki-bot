@@ -49,6 +49,11 @@ class CambridgeDictionary(Dictionary):
         return self.cache[word]
 
 
+    @staticmethod
+    def display_name() -> str:
+        return "English Cambridge Dictionary"
+
+
     def parse_definitions(self, html_doc: str) -> list[WordEntry]:
         """Parse definitions from html file"""
         soup = BeautifulSoup(html_doc, "html.parser")

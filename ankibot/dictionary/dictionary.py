@@ -8,6 +8,13 @@ from ankibot.errors import AnkiBotError
 class Dictionary(ABC):
     """Base class for all dictionary implementations."""
 
+    @staticmethod
+    @abstractmethod
+    def display_name() -> str:
+        """
+        Display name of the dictionary.
+        """
+
     @abstractmethod
     def __init__(self):
         pass
