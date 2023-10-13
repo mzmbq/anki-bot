@@ -2,6 +2,7 @@
 # pylint: disable=fixme
 
 import logging
+from enum import Enum, auto
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, User
 from telegram.ext import (Application, CommandHandler, ContextTypes, MessageHandler,
@@ -14,8 +15,20 @@ from ankibot.language_utils import init_nltk
 
 logger = logging.getLogger(__name__)
 
+class State(Enum):
+    """
+    Enum representing the current state of the conversation.
+    """
+    DEFAULT = auto()
+    DICT_SELECTION = auto()
+    ENTRY_CHOICE = auto()
+    CARD = auto()
+
+
 class AnkiBot():
-    """AnkiBot is the main class of the ankibot."""
+    """
+    AnkiBot is the main class of the ankibot.
+    """
 
     def __init__(
         self,
@@ -68,10 +81,29 @@ class AnkiBot():
         self.app.add_handler(CommandHandler("start", self.start_command))
         self.app.add_handler(CommandHandler("help", self.help_command))
         self.app.add_handler(CommandHandler("all", self.all_command))
-        self.app.add_handler(MessageHandler(
-            filters.TEXT & ~filters.COMMAND, self.lookup_command))
 
         self.app.add_handler(CallbackQueryHandler(self.button_command))
+
+        self.app.add_handler(MessageHandler(
+            filters.TEXT & ~filters.COMMAND, self.message_handler))
+
+        self.message_handlers = {
+            State.DEFAULT: self.lookup_command,
+            # State.DICT_SELECTION: self.dict_selection_handler,
+            # State.ENTRY_CHOICE: self.entry_choice_handler,
+            # State.CARD: self.card_handler,
+        }
+
+
+    async def message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Call the appropriate message handler based on the current state.
+        """
+
+        assert isinstance(context.user_data, dict)
+        state = context.user_data.get("state", State.DEFAULT)
+
+        await self.message_handlers[state](update, context)
 
 
     async def start_command(self, update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -81,7 +113,9 @@ class AnkiBot():
 
 
     async def help_command(self, update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Send a message when the command /help is issued."""
+        """
+        Send a message when the command /help is issued.
+        """
 
         help_msg = "Commands:\n" \
             "/help - ...\n" \
@@ -91,7 +125,9 @@ class AnkiBot():
 
 
     async def all_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Print all the words the user saved so far"""
+        """
+        Print all the words the user saved so far
+        """
         # TODO: generate a deck file?
 
         assert isinstance(context.user_data, dict)
