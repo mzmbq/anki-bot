@@ -9,6 +9,8 @@ from telegram.ext import (Application, CommandHandler, ContextTypes, MessageHand
 
 from ankibot.dictionary.cambridge import CambridgeDictionary, Dictionary
 from ankibot.errors import AnkiBotError
+from ankibot.language_utils import init_nltk
+
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ class AnkiBot():
         self.persistence_path = persistence_path
         self.words_per_page = words_per_page
 
+        init_nltk()
 
         self.app = self._build_app()
         self._register_handlers()
