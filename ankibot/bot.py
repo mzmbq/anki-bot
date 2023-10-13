@@ -57,7 +57,7 @@ class AnkiBot():
         self.builder = Application.builder()
 
         if self.is_persistent:
-            persistence = PicklePersistence(filepath=self.persistence_path)
+            persistence = PicklePersistence(filepath=self.persistence_path, single_file=False)
             self.builder.persistence(persistence)
 
         if not self.token:
@@ -73,8 +73,15 @@ class AnkiBot():
 
         bot_data = app.bot_data
 
-        if "cambridge_dict" not in bot_data:
-            bot_data["cambridge_dict"] = CambridgeDictionary()
+        # TODO: find a better way to do this
+        # load dictionaries
+        dictionaries = {
+            CambridgeDictionary.__name__: CambridgeDictionary,
+        }
+
+        for k, v in dictionaries.items():
+            if k not in bot_data:
+                bot_data[k] = v()
 
 
     def _register_handlers(self) -> None:

@@ -1,4 +1,4 @@
 [bot]
 is_persistent = true
-persistence_path = "persistent.data"
+persistence_path = "bot-data/persistent"
 words_per_page = 5
