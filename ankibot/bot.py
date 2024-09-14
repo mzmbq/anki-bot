@@ -1,12 +1,13 @@
 # pylint: disable=missing-function-docstring
 # pylint: disable=fixme
 
-import logging
 from enum import Enum, auto
+import logging
+import os
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, User
 from telegram.ext import (Application, CommandHandler, ContextTypes, MessageHandler,
-    filters, PicklePersistence, CallbackQueryHandler)
+                          filters, PicklePersistence, CallbackQueryHandler)
 
 from ankibot.dictionary.cambridge import CambridgeDictionary, Dictionary
 from ankibot.errors import AnkiBotError
@@ -14,6 +15,7 @@ from ankibot.language_utils import init_nltk
 
 
 logger = logging.getLogger(__name__)
+
 
 class State(Enum):
     """
@@ -32,18 +34,14 @@ class AnkiBot():
 
     def __init__(
         self,
-        *,
-        token: str | None,
-        is_persistent: bool = False,
-        persistence_path: str = "",
-        words_per_page: int = 10,
-
-        **_kwargs
+        token: str,
+        config: dict,
     ):
         self.token = token
-        self.is_persistent = is_persistent
-        self.persistence_path = persistence_path
-        self.words_per_page = words_per_page
+        self.words_per_page = config["bot"]["words_per_page"]
+        self.persistence_mkdir = config["bot"]["persistence"]["mkdir"]
+        self.is_persistent = config["bot"]["persistence"]["enabled"]
+        self.persistence_path = config["bot"]["persistence"]["path"]
 
         init_nltk()
 
@@ -52,12 +50,14 @@ class AnkiBot():
 
         self.app.run_polling()
 
-
     def _build_app(self) -> Application:
         self.builder = Application.builder()
 
         if self.is_persistent:
-            persistence = PicklePersistence(filepath=self.persistence_path, single_file=False)
+            if self.persistence_mkdir:
+                os.makedirs(self.persistence_path, exist_ok=True)
+            persistence = PicklePersistence(
+                filepath=self.persistence_path, single_file=False)
             self.builder.persistence(persistence)
 
         if not self.token:
@@ -83,7 +83,6 @@ class AnkiBot():
             if k not in bot_data:
                 bot_data[k] = v()
 
-
     def _register_handlers(self) -> None:
         self.app.add_handler(CommandHandler("start", self.start_command))
         self.app.add_handler(CommandHandler("help", self.help_command))
@@ -101,7 +100,6 @@ class AnkiBot():
             # State.CARD: self.card_handler,
         }
 
-
     async def message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """
         Call the appropriate message handler based on the current state.
@@ -112,12 +110,10 @@ class AnkiBot():
 
         await self.message_handlers[state](update, context)
 
-
     async def start_command(self, update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
         assert isinstance(update.effective_user, User)
         start_text = f"Hello, {update.effective_user.mention_html()}!\nUse /help command"
         await update.message.reply_html(start_text)
-
 
     async def help_command(self, update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
         """
@@ -129,7 +125,6 @@ class AnkiBot():
             "/login - to connect to your ankiweb account\n"
 
         await update.message.reply_text(help_msg)
-
 
     async def all_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """
@@ -147,14 +142,13 @@ class AnkiBot():
         msg = "\n------\n".join([str(i) for i in deck])
         await update.message.reply_text(msg)
 
-
     # TODO: Implement
+
     def validate_word(self, _word: str) -> bool:
         return True
 
-
     async def lookup_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        dictionary = context.bot_data["cambridge_dict"]
+        dictionary = context.bot_data["CambridgeDictionary"]
         word = update.message.text
 
         if not self.validate_word(word):
@@ -168,12 +162,11 @@ class AnkiBot():
         assert isinstance(update.effective_user, User)
         await self.show5(update.effective_user, dictionary, word, 0)
 
-
     async def button_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         assert isinstance(update.effective_user, User)
         assert isinstance(context.user_data, dict)
 
-        dictionary = context.bot_data["cambridge_dict"]
+        dictionary = context.bot_data["CambridgeDictionary"]
         query = update.callback_query
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
@@ -200,7 +193,6 @@ class AnkiBot():
             deck.append(def_model)
             await query.message.reply_text(f"Adding definition *{def_model.definition}* to your deck")
 
-
     async def show5(self, user: User, dictionary: Dictionary, word: str, page: int) -> None:
         words_per_page = self.words_per_page
 
@@ -215,7 +207,7 @@ class AnkiBot():
 
         # create definitions list
         definitions_msg = "\n***\n".join([f"{begin + i + 1}. {d}" for i,
-                                        d in enumerate(definitions)])
+                                          d in enumerate(definitions)])
 
         # create buttons
         keyboard_numbers = [InlineKeyboardButton(

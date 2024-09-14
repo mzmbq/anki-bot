@@ -21,8 +21,7 @@ def main() -> None:
     with open("config.toml", "rb") as f:
         config = tomllib.load(f)
 
-    AnkiBot(token=token, **config["bot"])
-
+    AnkiBot(token=token, config=config)
 
 
 if __name__ == "__main__":
